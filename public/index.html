@@ -6,7 +6,7 @@
 <title>RGB Studio</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Barlow+Condensed:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+*{box-sizing:border-box;margin:0;padding:0;user-select:none}
 :root{
   --bg:#0e0f11;--surface:#16181c;--surface2:#1e2026;--surface3:#252830;
   --border:#2a2d35;--border2:#363a44;--text:#dde1ea;--muted:#6b7080;--dim:#3d4150;
@@ -738,6 +738,16 @@ document.querySelectorAll('.rp-tab').forEach(t=>{
     t.classList.add('active');
     document.querySelectorAll('.rp-body').forEach(x=>x.style.display='none');
     document.getElementById('rp-'+t.dataset.rp).style.display='';
+  };
+});
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const target = t.dataset.tab === 'lighting' ? 'color' : t.dataset.tab;
+    const rpTab = document.querySelector(`.rp-tab[data-rp="${target}"]`);
+    if(rpTab) rpTab.click();
   };
 });
 
