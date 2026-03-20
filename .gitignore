@@ -1,3 +1,12 @@
 node_modules/
-.DS_Store
+.env
 *.log
+.DS_Store
+Thumbs.db
+
+# Playwright browser binaries (large, installed by install.ps1)
+/ms-playwright/
+
+# Local-only: don't commit user-fetched MIDIs by default
+# Remove this line if you want to track all MIDIs in git:
+# midis/User_Fetch_*

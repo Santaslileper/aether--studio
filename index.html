@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aether Studio Piano</title>
+  <meta name="description" content="Aether Studio — browser-based classical piano with 3D visuals, sheet music, MIDI playback and RGB keyboard lighting.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=Inter:wght@300;400;500;600&family=Space+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script type="module" src="./js/main.js"></script>
+  <link rel="stylesheet" href="./assets/index-Bz3rgqT0.css">
+  <link rel="stylesheet" href="./assets/library.css">
+  <style>
+    body, html { margin: 0; padding: 0; width: 100%; height: 100vh; overflow: hidden; background: #050608; }
+    #app { width: 100%; height: 100%; position: relative; }
+    #canvas-container { 
+      position: absolute; top: 0; left: 0; 
+      width: 100%; height: 100%; 
+      z-index: 1; background: #050608;
+    }
+    .overlay { position: absolute; inset: 0; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+    .overlay > * { pointer-events: auto; }
+    
+    /* VKB Styles for Settings */
+    .vkb { display: flex; flex-direction: column; gap: 8px; margin-top: 15px; width: 100%; align-items: center; scale: 0.85; transform-origin: top center; }
+    .vkb-row { display: flex; gap: 6px; }
+    .vk { 
+      background: #2a2c34; border: 1px solid #3d3f4a; border-radius: 8px; 
+      width: 42px; height: 42px; display: flex; flex-direction: column; 
+      align-items: center; justify-content: center; position: relative;
+    }
+    .vk.mapped { background: #d4922a4d; border-color: #d4922a; }
+    .vk-label { font-size: 14px; font-weight: 700; color: #fff; }
+    .vk-note { font-size: 9px; color: #d4922a; font-weight: 700; position: absolute; bottom: 3px; }
+    .vk.w-wide { width: 64px; }
+    .vk.w-xl { width: 88px; }
+    .vk.w-2xl { width: 112px; }
+    .vk.w-space { width: 220px; }
+
+    /* Dropdown Reset */
+    select#instrument-select option { background: #1a1c24; color: #fff; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="canvas-container"></div>
+
+    <div class="overlay">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-name">Aether</span>
+          <span class="brand-sub">Studio Piano</span>
+        </div>
+
+        <div class="search-wrap">
+          <input type="text" id="song-search" placeholder="Search BitMidi or Library…" autocomplete="off">
+          <div id="search-results" class="dropdown hidden"></div>
+        </div>
+        <div id="octave-display">Octave: Normal</div>
+
+        <nav class="top-nav">
+          <select id="instrument-select" title="Choose instrument"></select>
+          <button id="record-btn" class="icon-btn" title="Record">⏺</button>
+          <button id="replay-btn" class="icon-btn hidden" title="Play recording">▶ REC</button>
+          <button id="fullscreen-toggle" class="icon-btn" title="Fullscreen">⛶</button>
+          <button id="library-open" class="text-btn" title="Song Library">Library</button>
+          <!-- Link to Vault (always available, even hosted) -->
+          <a href="./vault/" class="text-btn" title="Classical Vault" style="text-decoration:none;">Vault</a>
+        </nav>
+      </header>
+
+      <footer class="bottom-bar">
+        <div class="transport">
+          <button class="transport-btn" id="prev-track" title="Previous">⏮</button>
+          <button class="transport-btn play-btn" id="auto-play">▶</button>
+          <button class="transport-btn" id="next-track" title="Next">⏭</button>
+        </div>
+
+        <div class="song-panel">
+          <span class="song-name" id="song-name-display">No song loaded</span>
+          <div class="scrub-row">
+            <input type="range" id="song-scrub" min="0" max="100" value="0">
+          </div>
+        </div>
+
+        <div class="right-controls">
+          <div class="knob-group">
+            <label>Volume <span class="volume-label">80%</span></label>
+            <input type="range" id="play-volume" min="0" max="1" step="0.01" value="0.8">
+          </div>
+          <div class="knob-group">
+            <label>Speed <span class="speed-label">1.0×</span></label>
+            <input type="range" id="play-speed" min="0.25" max="2.0" step="0.05" value="1.0">
+          </div>
+          <div class="knob-group">
+            <label>Zoom <span class="zoom-label">1.0×</span></label>
+            <input type="range" id="camera-zoom" min="0.4" max="3.0" step="0.05" value="1.0">
+          </div>
+          <button id="sustain-indicator" class="pill-indicator" title="Sustain (Space)">SUS</button>
+          <button id="narrator-toggle" class="pill-indicator" title="Narrator mode">NAR</button>
+          <button id="kb-link-btn" class="pill-indicator active" title="RGB Keyboard Link">RGB</button>
+          <button id="settings-open" class="icon-btn" title="Settings">⚙</button>
+        </div>
+      </footer>
+    </div>
+
+    <div id="debug-panel"></div>
+  </div>
+
+  <!-- Library Modal -->
+  <div id="library-modal" class="modal hidden">
+    <div class="modal-box wide">
+      <h2>Library</h2>
+      <div class="modal-body">
+        <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+          <input type="text" id="library-search" placeholder="Filter songs…" style="flex:1; background:var(--surface); border:1px solid var(--border); color:var(--text); border-radius:100px; padding:.6rem 1.2rem; outline:none; font-size:.85rem;">
+          <button id="load-midi-btn" class="secondary-btn">📁 Load MIDI</button>
+          <input type="file" id="midi-upload" accept=".mid,.midi" multiple class="hidden">
+        </div>
+        <div id="library-songs-list" class="song-list"></div>
+      </div>
+      <div style="display:flex; gap:1rem; justify-content:flex-end;">
+        <button id="library-close-btn" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-box">
+      <h2>Settings</h2>
+      <div class="modal-body">
+        <div class="knob-group" style="margin-bottom:1.5rem;">
+          <label>Preference Controls</label>
+          <div style="display:flex; flex-direction:column; gap:12px; margin-top:10px;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+              <input type="checkbox" id="toggle-kb-link" checked> RGB Keyboard Lighting
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+              <input type="checkbox" id="kb-link-play" checked> RGB During Playback
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+              <input type="checkbox" id="kb-link-guide" checked> RGB During Guide Mode
+            </label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;">
+              <input type="checkbox" id="toggle-page-turn"> Disable 3D Page Turn
+            </label>
+          </div>
+        </div>
+        <div class="knob-group" style="margin-bottom:1.5rem;">
+          <label>Keyboard Binding — Octave Shift</label>
+          <div id="key-bindings-list"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:1rem; justify-content:flex-end;">
+        <button id="settings-close" class="secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

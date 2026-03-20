@@ -1,18 +1,26 @@
 {
-  "name": "new-folder-(11)",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "aether-studio",
+  "version": "2.0.0",
+  "description": "Aether Studio — Classical piano app with 3D visuals, MIDI vault, and RGB keyboard lighting",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "cue-sdk": "^4.0.84",
-    "express": "^5.2.1",
-    "socket.io": "^4.8.3"
+    "@tonejs/midi": "^2.0.28",
+    "archiver": "^6.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "fs-extra": "^11.2.0",
+    "socket.io": "^4.8.1"
+  },
+  "optionalDependencies": {
+    "cue-sdk": "*",
+    "playwright": "^1.44.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
